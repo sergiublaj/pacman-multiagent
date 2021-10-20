@@ -30,7 +30,7 @@ class LeftTurnAgent(game.Agent):
         if current in legal: return current
         if Directions.RIGHT[current] in legal: return Directions.RIGHT[current]
         if Directions.LEFT[left] in legal: return Directions.LEFT[left]
-        return Directions.STOP
+        return DirectiWons.STOP
 
 class GreedyAgent(Agent):
     def __init__(self, evalFn="scoreEvaluation"):

@@ -14,7 +14,7 @@
 
 from graphicsUtils import *
 import math, time
-from game import Directions
+from game import AgentState, Directions
 
 ###########################
 #  GRAPHICS DISPLAY CODE  #
@@ -60,8 +60,9 @@ SCARED_COLOR = formatColor(1,1,1)
 
 GHOST_VEC_COLORS = map(colorToVector, GHOST_COLORS)
 
-PACMAN_COLOR = formatColor(255.0/255.0,255.0/255.0,61.0/255)
+PACMAN_COLOR = formatColor(55.0/255.0,155.0/255.0,61.0/255)
 PACMAN_SCALE = 0.5
+PACMAN_SPEED = 0.25
 #pacman_speed = 0.25
 
 # Food
@@ -73,8 +74,15 @@ LASER_COLOR = formatColor(1,0,0)
 LASER_SIZE = 0.02
 
 # Capsule graphics
-CAPSULE_COLOR = formatColor(1,1,1)
-CAPSULE_SIZE = 0.25
+CAPSULE_FILL_COLOR = formatColor(0.0, 0.0, 0.0)
+CAPSULE_COLORS = [
+    formatColor(0.0, 0.6, 0.6),
+    formatColor(0.5, 0.2, 0.0),
+    formatColor(0.3, 0.0, 0.9),
+    formatColor(0.2, 0.5, 0.0),
+    formatColor(0.9, 0.0, 0.2),
+]
+CAPSULE_SIZE = 0.3
 
 # Drawing walls
 WALL_RADIUS = 0.15
@@ -86,7 +94,7 @@ class InfoPane:
         self.base = (layout.height + 1) * gridSize
         self.height = INFO_PANE_HEIGHT
         self.fontSize = 24
-        self.textColor = PACMAN_COLOR
+        self.textColor = SCORE_COLOR
         self.drawPane()
 
     def toScreen(self, pos, y = None):
@@ -104,6 +112,7 @@ class InfoPane:
 
     def drawPane(self):
         self.scoreText = text( self.toScreen(0, 0  ), self.textColor, "SCORE:    0", "Times", self.fontSize, "bold")
+        self.foodText = text( self.toScreen(250, 0  ), self.textColor, "", "Times", self.fontSize, "bold")
 
     def initializeGhostDistances(self, distances):
         self.ghostDistanceText = []
@@ -120,6 +129,12 @@ class InfoPane:
 
     def updateScore(self, score):
         changeText(self.scoreText, "SCORE: % 4d" % score)
+        
+    def updateFood(self, food, time):
+        if time == 0:
+            changeText(self.foodText, "")
+        else:
+            changeText(self.foodText, f"FOOD: {food} ({time})")
 
     def setTeam(self, isBlue):
         text = "RED TEAM"
@@ -237,8 +252,11 @@ class PacmanGraphics:
         agentIndex = newState._agentMoved
         agentState = newState.agentStates[agentIndex]
 
-        if self.agentImages[agentIndex][0].isPacman != agentState.isPacman: self.swapImages(agentIndex, agentState)
+        if self.agentImages[agentIndex][0].isPacman != agentState.isPacman: 
+            self.swapImages(agentIndex, agentState)
+            
         prevState, prevImage = self.agentImages[agentIndex]
+        
         if agentState.isPacman:
             self.animatePacman(agentState, prevState, prevImage)
         else:
@@ -247,9 +265,15 @@ class PacmanGraphics:
 
         if newState._foodEaten != None:
             self.removeFood(newState._foodEaten, self.food)
+            
         if newState._capsuleEaten != None:
             self.removeCapsule(newState._capsuleEaten, self.capsules)
+        
+        if agentState.isPacman:
+            self.infoPane.updateFood(agentState.luckyFood, agentState.luckyFoodTimer)
+
         self.infoPane.updateScore(newState.score)
+        
         if 'ghostDistances' in dir(newState):
             self.infoPane.updateGhostDistances(newState.ghostDistances)
 
@@ -543,13 +567,13 @@ class PacmanGraphics:
 
     def drawCapsules(self, capsules ):
         capsuleImages = {}
-        for capsule in capsules:
+        for idx, capsule in enumerate(capsules):
             ( screen_x, screen_y ) = self.to_screen(capsule)
             dot = circle( (screen_x, screen_y),
                               CAPSULE_SIZE * self.gridSize,
-                              outlineColor = CAPSULE_COLOR,
-                              fillColor = CAPSULE_COLOR,
-                              width = 1)
+                              outlineColor = CAPSULE_FILL_COLOR,
+                              fillColor = CAPSULE_COLORS[idx % len(CAPSULE_COLORS)],
+                              width = 1.5)
             capsuleImages[capsule] = dot
         return capsuleImages
 

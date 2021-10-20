@@ -111,6 +111,7 @@ class GameState:
         # Time passes
         if agentIndex == 0:
             state.data.scoreChange += -TIME_PENALTY # Penalty for waiting around
+            PacmanRules.decrementFoodTimer (state.data.agentStates[0])
         else:
             GhostRules.decrementTimer( state.data.agentStates[agentIndex] )
 
@@ -259,6 +260,8 @@ class GameState:
 # You shouldn't need to look through the code in this section of the file. #
 ############################################################################
 
+LUCKYFOOD_TIME = 60
+
 SCARED_TIME = 40    # Moves ghosts are scared
 COLLISION_TOLERANCE = 0.7 # How close ghosts must be to Pacman to kill
 TIME_PENALTY = 1 # Number of points lost each round
@@ -325,8 +328,8 @@ class PacmanRules:
     These functions govern how pacman interacts with his environment under
     the classic game rules.
     """
-    PACMAN_SPEED=1
-
+    PACMAN_SPEED = 1.0
+    
     def getLegalActions( state ):
         """
         Returns a list of possible actions.
@@ -358,31 +361,81 @@ class PacmanRules:
 
     def consume( position, state ):
         x,y = position
+        pacman = state.data.agentStates[0]
+        
         # Eat food
         if state.data.food[x][y]:
             state.data.scoreChange += 10
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
             state.data._foodEaten = position
-            # TODO: cache numFood?
+
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._lose:
                 state.data.scoreChange += 500
                 state.data._win = True
+                
         # Eat capsule
-        if( position in state.getCapsules() ):
+        if position in state.getCapsules() and pacman.luckyFoodTimer == 0:
+            state.data.scoreChange += 100
             state.data.capsules.remove( position )
             state.data._capsuleEaten = position
-            # Reset all ghosts' scared timers
-            for index in range( 1, len( state.data.agentStates ) ):
-                state.data.agentStates[index].scaredTimer = SCARED_TIME
+            
+            PacmanRules.handleLuckyFood(pacman)
+                    
     consume = staticmethod( consume )
+    
+    def handleLuckyFood(pacman):
+        pacman.luckyFoodTimer = LUCKYFOOD_TIME
+            
+        luckyFoodId = random.randint(0, 14)
+        
+        if luckyFoodId == 1:
+            pacman.luckyFood = "Pacman speed decrease"
+            PacmanRules.PACMAN_SPEED = 0.5
+        elif luckyFoodId == 3:
+            pacman.luckyFood = "Ghost speed decrease"
+            GhostRules.GHOST_SPEED = 0.5
+        elif luckyFoodId == 4:
+            pacman.luckyFood = "Pacman size increase"
+        elif luckyFoodId == 5:
+            pacman.luckyFood = "Pacman size decrease"
+        elif luckyFoodId == 6:
+            pacman.luckyFood = "Ghost size increase"
+        elif luckyFoodId == 7:
+            pacman.luckyFood = "Ghost size decrease"
+        elif luckyFoodId == 8:
+            pacman.luckyFood = "Random color"
+        elif luckyFoodId == 9:
+            pacman.luckyFood = "Immunity"
+        elif luckyFoodId == 10:
+            pacman.luckyFood = "No ghosts"
+        elif luckyFoodId == 11:
+            pacman.luckyFood = "Instant win"
+        elif luckyFoodId == 12:
+            pacman.luckyFood = "Instant death"
+        elif luckyFoodId == 13:
+            pacman.luckyFood = "Teleport"
+        else:
+            pacman.luckyFood = "Ms Pacman"
+            
+    def revertChanges():
+        PacmanRules.PACMAN_SPEED = 1.0
+        GhostRules.GHOST_SPEED = 1.0
+    revertChanges = staticmethod( revertChanges )
+    
+    def decrementFoodTimer (pacmanState):
+        timer = pacmanState.luckyFoodTimer
+        pacmanState.luckyFoodTimer = max( 0, timer - 1 )
+        if timer == 0:
+            PacmanRules.revertChanges()
+    decrementFoodTimer = staticmethod( decrementFoodTimer )
 
 class GhostRules:
     """
     These functions dictate how ghosts interact with their environment.
     """
-    GHOST_SPEED=1.0
+    GHOST_SPEED = 1.0
     def getLegalActions( state, ghostIndex ):
         """
         Ghosts cannot stop, and cannot turn around unless they
@@ -416,7 +469,7 @@ class GhostRules:
         if timer == 1:
             ghostState.configuration.pos = nearestPoint( ghostState.configuration.pos )
         ghostState.scaredTimer = max( 0, timer - 1 )
-    decrementTimer = staticmethod( decrementTimer )
+    decrementTimer = staticmethod( decrementTimer )        
 
     def checkDeath( state, agentIndex):
         pacmanPosition = state.getPacmanPosition()
