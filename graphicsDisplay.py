@@ -54,7 +54,6 @@ GHOST_COLORS.append(formatColor(0,.3,.9)) # Blue
 GHOST_COLORS.append(formatColor(.98,.41,.07)) # Orange
 GHOST_COLORS.append(formatColor(.1,.75,.7)) # Green
 GHOST_COLORS.append(formatColor(1.0,0.6,0.0)) # Yellow
-GHOST_COLORS.append(formatColor(.4,0.13,0.91)) # Purple
     
 TEAM_COLORS = GHOST_COLORS[:2]
 
@@ -89,6 +88,9 @@ class UsefulConstants:
     PACMAN_SIZE = 0.5
     PACMAN_TELEPORT = False
     PACMAN_COORDINATES = (-1, -1)
+    
+    MS_PACMAN_ID = -1
+    MS_PACMAN = None
 
     GHOST_SIZE = 0.65
     GHOST_SPEED = 1.0
@@ -308,7 +310,7 @@ class PacmanGraphics:
                        BACKGROUND_COLOR,
                        "CS188 Pacman")
 
-    def drawPacman(self, pacman, index):
+    def drawPacman(self, pacman, index, isMsPacman = None):
         position = self.getPosition(pacman)
         screen_point = self.to_screen(position)
         endpoints = self.getEndpoints(self.getDirection(pacman))
@@ -321,6 +323,9 @@ class PacmanGraphics:
             outlineColor = TEAM_COLORS[index % 2]
             fillColor = GHOST_COLORS[index]
             width = PACMAN_CAPTURE_OUTLINE_WIDTH
+            
+        if isMsPacman:
+            fillColor = formatColor(0.95, 0.75, 0.0)
 
         return [circle(screen_point, Constants.PACMAN_SIZE * self.gridSize,
                        fillColor = fillColor, outlineColor = outlineColor,
@@ -373,12 +378,14 @@ class PacmanGraphics:
     def getGhostColor(self, ghost, ghostIndex):
         if Constants.NO_GHOSTS == True:
             return BACKGROUND_COLOR
+        elif Constants.MS_PACMAN_ID == ghostIndex:
+            return formatColor(0.7, 0.1, 0.7)
         elif ghost.scaredTimer > 0:
             return SCARED_COLOR
         else:
             return GHOST_COLORS[ghostIndex]
 
-    def drawGhost(self, ghost, agentIndex):
+    def drawGhost(self, ghost, agentIndex):           
         pos = self.getPosition(ghost)
         dir = self.getDirection(ghost)
         (screen_x, screen_y) = (self.to_screen(pos) )
@@ -411,7 +418,7 @@ class PacmanGraphics:
         ghostImageParts.append(rightEye)
         ghostImageParts.append(leftPupil)
         ghostImageParts.append(rightPupil)
-
+    
         return ghostImageParts
 
     def moveEyes(self, pos, dir, eyes):
@@ -432,9 +439,25 @@ class PacmanGraphics:
         moveCircle(eyes[3],(screen_x+self.gridSize*Constants.GHOST_SIZE*(0.3+dx), screen_y-self.gridSize*Constants.GHOST_SIZE*(0.3-dy)), self.gridSize*Constants.GHOST_SIZE*0.08)
 
     def moveGhost(self, ghost, ghostIndex, prevGhost, ghostImageParts):
+        if ghostIndex == Constants.MS_PACMAN_ID:
+            for ghostImagePart in ghostImageParts:
+                move_by(ghostImagePart, (-1000, -1000))
+            refresh()
+            
+            if Constants.MS_PACMAN != None:
+                moveCircle(Constants.MS_PACMAN, (99999, 99999), 0)
+            Constants.MS_PACMAN = PacmanGraphics.drawPacman(self, ghost, 0)
+            
+            
+                
+            # return [circle(self.to_screen(self.getPosition(ghost)), Constants.PACMAN_SIZE * self.gridSize,
+            #            fillColor = formatColor(1.0, 0.85, 0.0), outlineColor = formatColor(1.0, 0.85, 0.0),
+            #            endpoints = self.getEndpoints(self.getDirection(ghost)),
+            #            width = 1.0)]
+            
         if Constants.NO_GHOSTS == True:
             for ghostImagePart in ghostImageParts:
-                move_by(ghostImagePart, (100, 100))
+                move_by(ghostImagePart, (-1000, -1000))
             refresh()
             return
         
