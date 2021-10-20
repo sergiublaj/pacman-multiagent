@@ -391,23 +391,20 @@ class PacmanRules:
     def handleLuckyFood(state, pacman):
         pacman.luckyFoodTimer = LUCKYFOOD_TIME
             
-        luckyFoodId = random.randint(0, 14)
-        # luckyFoodId = 14
-        
+        luckyFoodId = random.randint(0, 12)
+
         if luckyFoodId == 0: PacmanRules.handlePacmanFreeze(pacman)
         elif luckyFoodId == 1: PacmanRules.handlePacmanSpeedDecrease(pacman)
         elif luckyFoodId == 2: PacmanRules.handleGhostFreeze(pacman)
         elif luckyFoodId == 3: PacmanRules.handleGhostSpeed(pacman)
         elif luckyFoodId == 4: PacmanRules.handlePacmanSizeMinus(pacman)
         elif luckyFoodId == 5: PacmanRules.handlePacmanSizePlus(pacman)
-        elif luckyFoodId == 6: PacmanRules.handleGhostSizeMinus(pacman)
-        elif luckyFoodId == 7: PacmanRules.handleGhostSizePlus(pacman)
-        elif luckyFoodId == 8: PacmanRules.handlePacmanColor(pacman)
-        elif luckyFoodId == 9: PacmanRules.handleImmunity(state, pacman)
-        elif luckyFoodId == 10: PacmanRules.handleNoGhosts(pacman)
-        elif luckyFoodId == 11: PacmanRules.handleInstantWin(state, pacman)
-        elif luckyFoodId == 12: PacmanRules.handleInstantLose(state, pacman)
-        elif luckyFoodId == 13: PacmanRules.handleTeleport(state, pacman)
+        elif luckyFoodId == 6: PacmanRules.handlePacmanColor(pacman)
+        elif luckyFoodId == 7: PacmanRules.handleImmunity(state, pacman)
+        elif luckyFoodId == 8: PacmanRules.handleNoGhosts(pacman)
+        elif luckyFoodId == 9: PacmanRules.handleInstantWin(state, pacman)
+        elif luckyFoodId == 10: PacmanRules.handleInstantLose(state, pacman)
+        elif luckyFoodId == 11: PacmanRules.handleTeleport(state, pacman)
         else: PacmanRules.handleMsPacman(state, pacman)
         
     handleLuckyFood = staticmethod( handleLuckyFood )
@@ -453,16 +450,6 @@ class PacmanRules:
         Constants.PACMAN_SIZE = 0.7
         pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
         
-    def handleGhostSizeMinus(pacman):
-        pacman.luckyFood = "Ghost size decrease"
-        Constants.GHOST_SIZE = 0.25
-        pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
-        
-    def handleGhostSizePlus(pacman):
-        pacman.luckyFood = "Ghost size increase"
-        Constants.GHOST_SIZE = 0.75
-        pacman.luckyFoodColor = PacmanRules.getColor("RED")
-
     def handlePacmanColor(pacman):
         pacman.luckyFood = "Random color"
         Constants.PACMAN_COLOR = formatColor(random.random(), random.random(), random.random())

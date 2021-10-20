@@ -448,13 +448,6 @@ class PacmanGraphics:
                 moveCircle(Constants.MS_PACMAN, (99999, 99999), 0)
             Constants.MS_PACMAN = PacmanGraphics.drawPacman(self, ghost, 0)
             
-            
-                
-            # return [circle(self.to_screen(self.getPosition(ghost)), Constants.PACMAN_SIZE * self.gridSize,
-            #            fillColor = formatColor(1.0, 0.85, 0.0), outlineColor = formatColor(1.0, 0.85, 0.0),
-            #            endpoints = self.getEndpoints(self.getDirection(ghost)),
-            #            width = 1.0)]
-            
         if Constants.NO_GHOSTS == True:
             for ghostImagePart in ghostImageParts:
                 move_by(ghostImagePart, (-1000, -1000))
