@@ -392,7 +392,7 @@ class PacmanRules:
         pacman.luckyFoodTimer = LUCKYFOOD_TIME
             
         # luckyFoodId = random.randint(0, 14)
-        luckyFoodId = 4
+        luckyFoodId = 14
         
         if luckyFoodId == 0: PacmanRules.handlePacmanFreeze(pacman)
         elif luckyFoodId == 1: PacmanRules.handlePacmanSpeedDecrease(pacman)
@@ -407,7 +407,7 @@ class PacmanRules:
         elif luckyFoodId == 10: PacmanRules.handleNoGhosts(pacman)
         elif luckyFoodId == 11: PacmanRules.handleInstantWin(state, pacman)
         elif luckyFoodId == 12: PacmanRules.handleInstantLose(state, pacman)
-        elif luckyFoodId == 13: PacmanRules.handleTeleport(pacman)
+        elif luckyFoodId == 13: PacmanRules.handleTeleport(state, pacman)
         else: PacmanRules.handleMsPacman(pacman)
         
     handleLuckyFood = staticmethod( handleLuckyFood )
@@ -465,7 +465,7 @@ class PacmanRules:
 
     def handlePacmanColor(pacman):
         pacman.luckyFood = "Random color"
-        PacmanRules.PACMAN_COLOR = formatColor(random.random(), random.random(), random.random())
+        Constants.PACMAN_COLOR = formatColor(random.random(), random.random(), random.random())
         pacman.luckyFoodColor = PacmanRules.getColor("WHITE")
     
     def handleImmunity(state, pacman):
@@ -477,6 +477,7 @@ class PacmanRules:
     def handleNoGhosts(pacman):
         pacman.luckyFood = "No ghosts"
         Constants.GHOST_SIZE = 0
+        Constants.NO_GHOSTS = True
         Constants.COLLISION_TOLERANCE = -1
         pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
         
@@ -490,24 +491,35 @@ class PacmanRules:
         state.data._lose = True
         pacman.luckyFoodColor = PacmanRules.getColor("RED")
         
-    def handleTeleport(pacman):
+    def handleTeleport(state, pacman):
         pacman.luckyFood = "Teleport"
+        
+        Constants.PACMAN_TELEPORT = True
+        
+        x, y = 0, 0
+        while state.hasWall(x, y):
+            x, y = random.randint(1, state.data.layout.walls.width - 1), random.randint(1, state.data.layout.walls.height - 1)
+        
+        Constants.PACMAN_COORDINATES = x, y
+
         pacman.luckyFoodColor = PacmanRules.getColor("WHITE")
         
     def handleMsPacman(pacman):
         pacman.luckyFood = "Ms Pacman"
+        
+        
+        
         pacman.luckyFoodColor = PacmanRules.getColor("PINK")
     
     def revertChanges():
-        Constants.PACMAN_SPEED = 1.0
-        
-        Constants.GHOST_SPEED = 1.0
-        
+        Constants.PACMAN_SPEED = 1.0       
         Constants.PACMAN_COLOR = formatColor(1.0, 0.6, 0.0)
         Constants.PACMAN_SIZE = 0.5
+        Constants.PACMAN_TELEPORT = False
+        Constants.PACMAN_COORDINATES = (-1, -1)
     
+        Constants.GHOST_SPEED = 1.0
         Constants.GHOST_SIZE = 0.5
-        Constants.NO_GHOSTS = False
     revertChanges = staticmethod( revertChanges )
     
     def decrementFoodTimer (pacmanState):

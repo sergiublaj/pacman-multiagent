@@ -15,7 +15,7 @@
 from ghostAgents import GhostAgent
 from graphicsUtils import *
 import math, time
-from game import Directions
+from game import Configuration, Directions
 
 
 ###########################
@@ -84,21 +84,19 @@ WALL_RADIUS = 0.15
 
 class UsefulConstants:
     PACMAN_COLOR = formatColor(1.0, 0.6, 0.0)
-    
+    PACMAN_SPEED = 1.0
     PACMAN_SIZE_REQUEST = False
     PACMAN_SIZE = 0.5
+    PACMAN_TELEPORT = False
+    PACMAN_COORDINATES = (-1, -1)
 
     GHOST_SIZE = 0.65
-    
-    PACMAN_SPEED = 1.0
-    COLLISION_TOLERANCE = 0.7
-    
     GHOST_SPEED = 1.0
     NO_GHOSTS = False
     
+    COLLISION_TOLERANCE = 0.7
+    
 Constants = UsefulConstants
-
-
 
 class InfoPane:
     def __init__(self, layout, gridSize):
@@ -275,6 +273,11 @@ class PacmanGraphics:
         if agentState.isPacman:
             moveCircle(prevImage, (99999, 99999), 0)
             prevImage = PacmanGraphics.drawPacman(self, agentState, 0)
+            
+            agentState.configuration = Configuration(Constants.PACMAN_COORDINATES, agentState.configuration.direction) if Constants.PACMAN_TELEPORT else agentState.configuration
+            
+            Constants.PACMAN_TELEPORT = False
+            
             self.animatePacman(agentState, prevState, prevImage)
         else:
             self.moveGhost(agentState, agentIndex, prevState, prevImage)
@@ -340,7 +343,7 @@ class PacmanGraphics:
             endpoints = (0+delta, 0-delta)
         return endpoints
 
-    def movePacman(self, position, direction, image):
+    def movePacman(self, position, direction, image):            
         screenPosition = self.to_screen(position)
         endpoints = self.getEndpoints( direction, position )
         r = Constants.PACMAN_SIZE * self.gridSize
@@ -376,7 +379,6 @@ class PacmanGraphics:
             return GHOST_COLORS[ghostIndex]
 
     def drawGhost(self, ghost, agentIndex):
-        
         pos = self.getPosition(ghost)
         dir = self.getDirection(ghost)
         (screen_x, screen_y) = (self.to_screen(pos) )
