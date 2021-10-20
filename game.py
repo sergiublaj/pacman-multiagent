@@ -129,6 +129,7 @@ class AgentState:
         self.scaredTimer = 0
         self.luckyFoodTimer = 0
         self.luckyFood = ""
+        self.luckyFoodColor = "WHITE"
         self.numCarrying = 0
         self.numReturned = 0
 
@@ -152,6 +153,7 @@ class AgentState:
         state.scaredTimer = self.scaredTimer
         state.luckyFoodTimer = self.luckyFoodTimer
         state.luckyFood = self.luckyFood
+        state.luckyFoodColor = self.luckyFoodColor
         state.numCarrying = self.numCarrying
         state.numReturned = self.numReturned
         return state

@@ -45,6 +45,7 @@ from game import Directions
 from game import Actions
 from util import nearestPoint
 from util import manhattanDistance
+from graphicsUtils import formatColor
 import util, layout
 import sys, types, time, random, os
 
@@ -390,35 +391,67 @@ class PacmanRules:
             
         luckyFoodId = random.randint(0, 14)
         
-        if luckyFoodId == 1:
+        if luckyFoodId == 0:
+            pacman.luckyFood = "Pacman freeze"
+            PacmanRules.PACMAN_SPEED = 0.0
+            pacman.luckyFoodColor = PacmanRules.getColor("RED")
+        elif luckyFoodId == 1:
             pacman.luckyFood = "Pacman speed decrease"
             PacmanRules.PACMAN_SPEED = 0.5
+            pacman.luckyFoodColor = PacmanRules.getColor("RED")
+        elif luckyFoodId == 2:
+            pacman.luckyFood = "Ghost freeze"
+            GhostRules.GHOST_SPEED = 0.0
+            pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
         elif luckyFoodId == 3:
             pacman.luckyFood = "Ghost speed decrease"
             GhostRules.GHOST_SPEED = 0.5
+            pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
         elif luckyFoodId == 4:
             pacman.luckyFood = "Pacman size increase"
+            pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
         elif luckyFoodId == 5:
             pacman.luckyFood = "Pacman size decrease"
+            pacman.luckyFoodColor = PacmanRules.getColor("RED")
         elif luckyFoodId == 6:
             pacman.luckyFood = "Ghost size increase"
+            pacman.luckyFoodColor = PacmanRules.getColor("RED")
         elif luckyFoodId == 7:
             pacman.luckyFood = "Ghost size decrease"
+            pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
         elif luckyFoodId == 8:
             pacman.luckyFood = "Random color"
+            pacman.luckyFoodColor = PacmanRules.getColor("WHITE")
         elif luckyFoodId == 9:
             pacman.luckyFood = "Immunity"
+            pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
         elif luckyFoodId == 10:
             pacman.luckyFood = "No ghosts"
+            pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
         elif luckyFoodId == 11:
             pacman.luckyFood = "Instant win"
+            pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
         elif luckyFoodId == 12:
             pacman.luckyFood = "Instant death"
+            pacman.luckyFoodColor = PacmanRules.getColor("RED")
         elif luckyFoodId == 13:
             pacman.luckyFood = "Teleport"
+            pacman.luckyFoodColor = PacmanRules.getColor("WHITE")
         else:
             pacman.luckyFood = "Ms Pacman"
+            pacman.luckyFoodColor = PacmanRules.getColor("PINK")
             
+    def getColor(color):
+        if color == "WHITE":
+            return formatColor(1.0, 1.0, 1.0)
+        if color == "GREEN":
+            return formatColor(0.0, 1.0, 0.0)
+        if color == "RED":
+            return formatColor(1.0, 0.6, 0.6)
+        if color == "PINK":
+            return formatColor(0.7, 0.1, 0.7)        
+    getColor = staticmethod( getColor )
+    
     def revertChanges():
         PacmanRules.PACMAN_SPEED = 1.0
         GhostRules.GHOST_SPEED = 1.0
