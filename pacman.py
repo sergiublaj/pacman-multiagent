@@ -391,8 +391,7 @@ class PacmanRules:
     def handleLuckyFood(state, pacman):
         pacman.luckyFoodTimer = LUCKYFOOD_TIME
             
-        # luckyFoodId = random.randint(0, 12)
-        luckyFoodId = 12
+        luckyFoodId = random.randint(0, 12)
 
         if luckyFoodId == 0: PacmanRules.handlePacmanFreeze(pacman)
         elif luckyFoodId == 1: PacmanRules.handlePacmanSpeedDecrease(pacman)
