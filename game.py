@@ -131,6 +131,7 @@ class AgentState:
         self.luckyFood = ""
         self.luckyFoodColor = "WHITE"
         self.lives = 1
+        self.ghostsEaten = 0
         self.draw = True
         self.numCarrying = 0
         self.numReturned = 0
@@ -158,6 +159,7 @@ class AgentState:
         state.luckyFoodColor = self.luckyFoodColor
         state.lives = self.lives
         state.draw = self.draw
+        state.ghostsEaten = self.ghostsEaten
         state.numCarrying = self.numCarrying
         state.numReturned = self.numReturned
         return state

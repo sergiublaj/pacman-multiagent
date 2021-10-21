@@ -34,6 +34,9 @@ SCORE_COLOR = formatColor(.9, .9, .9)
 PACMAN_OUTLINE_WIDTH = 2
 PACMAN_CAPTURE_OUTLINE_WIDTH = 4
 
+SYMBOL_HEART = "\u2764\uFE0F"
+SYMBOL_GHOST = "\u15E3"
+
 GHOST_SHAPE = [
     ( 0,    0.3 ),
     ( 0.25, 0.75 ),
@@ -81,6 +84,8 @@ CAPSULE_SIZE = 0.3
 # Drawing walls
 WALL_RADIUS = 0.15
 
+foodTexts = ["Pacman freeze", "Pacman speed decrease", "Ghost freeze", "Ghost speed decrease", "Pacman size decrease", "Pacman size increase", "Immunity"]
+
 class UsefulVariables:
     PACMAN_COLOR = formatColor(1.0, 0.6, 0.0)
     PACMAN_SPEED = 1.0
@@ -104,7 +109,7 @@ class InfoPane:
     def __init__(self, layout, gridSize):
         self.gridSize = gridSize
         self.width = (layout.width) * gridSize
-        self.base = (layout.height + 0) * gridSize
+        self.base = (layout.height + 0.1) * gridSize
         self.height = INFO_PANE_HEIGHT
         self.fontSize = 24
         self.textColor = SCORE_COLOR
@@ -126,7 +131,8 @@ class InfoPane:
     def drawPane(self):
         self.scoreText = text( self.toScreen(0, 0), self.textColor, "SCORE:    0", "Times", self.fontSize, "bold")
         self.foodText = text( self.toScreen(250, 0), self.textColor, "", "Times", self.fontSize, "bold")
-        self.livesText = text( self.toScreen(0, 27.5), self.textColor, "LIVES: ", "Times", self.fontSize, "bold")
+        self.livesText = text( self.toScreen(0, 30), self.textColor, "LIVES: ", "Times", self.fontSize, "bold")
+        self.ghostsEaten = text( self.toScreen(250, 30), self.textColor, f"GHOSTS EATEN: 0 x {SYMBOL_GHOST}", "Times", self.fontSize, "bold")
 
     def initializeGhostDistances(self, distances):
         self.ghostDistanceText = []
@@ -145,15 +151,20 @@ class InfoPane:
         changeText(self.scoreText, "SCORE: % 4d" % score)
         
     def updateLives(self, lives):
-        changeText(self.livesText, f"LIVES: {lives} x \u2764\uFE0F")
+        changeText(self.livesText, f"LIVES: {lives} x {SYMBOL_HEART}")
         
     def updateFood(self, food, time, color):
         changeColor(self.foodText, color)
         
+        timeText = f"({time})" if food in foodTexts else ""
+        
         if time == 0:
             changeText(self.foodText, "")
         else:
-            changeText(self.foodText, f"FOOD: {food} ({time})")
+            changeText(self.foodText, f"FOOD: {food} {timeText}")
+            
+    def updateGhostsEaten(self, ghostsEaten):
+        changeText(self.ghostsEaten, f"GHOSTS EATEN: {ghostsEaten} x {SYMBOL_GHOST}")
 
     def setTeam(self, isBlue):
         text = "RED TEAM"
@@ -296,6 +307,7 @@ class PacmanGraphics:
             self.removeCapsule(newState._capsuleEaten, self.capsules)
         
         if agentState.isPacman:
+            self.infoPane.updateGhostsEaten(agentState.ghostsEaten)
             self.infoPane.updateLives(agentState.lives)
             self.infoPane.updateFood(agentState.luckyFood, agentState.luckyFoodTimer, agentState.luckyFoodColor)
 

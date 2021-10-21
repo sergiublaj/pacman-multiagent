@@ -392,8 +392,7 @@ class PacmanRules:
     def handleLuckyFood(state, pacman):
         pacman.luckyFoodTimer = LUCKYFOOD_TIME
             
-        # luckyFoodId = random.randint(0, 13)
-        luckyFoodId = 12
+        luckyFoodId = random.randint(0, 13)
 
         if luckyFoodId == 0: PacmanRules.handlePacmanFreeze(pacman)
         elif luckyFoodId == 1: PacmanRules.handlePacmanSpeedDecrease(pacman)
@@ -603,6 +602,7 @@ class GhostRules:
             state.data.scoreChange += 200
             GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
+            pacman.ghostsEaten += 1
             # Added for first-person
             state.data._eaten[agentIndex] = True
         elif pacman.lives > 1:
