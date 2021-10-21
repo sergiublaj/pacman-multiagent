@@ -39,6 +39,7 @@ code to run a game.  This file is divided into three sections:
 To play your first game, type 'python pacman.py' from the command line.
 The keys are 'a', 's', 'd', and 'w' to move (or arrow keys).  Have fun!
 """
+from tkinter import Variable
 from game import GameStateData
 from game import Game
 from game import Directions
@@ -391,17 +392,18 @@ class PacmanRules:
     def handleLuckyFood(state, pacman):
         pacman.luckyFoodTimer = LUCKYFOOD_TIME
             
-        luckyFoodId = random.randint(0, 12)
+        # luckyFoodId = random.randint(0, 12)
+        luckyFoodId = 12
 
         if luckyFoodId == 0: PacmanRules.handlePacmanFreeze(pacman)
         elif luckyFoodId == 1: PacmanRules.handlePacmanSpeedDecrease(pacman)
-        elif luckyFoodId == 2: PacmanRules.handleGhostFreeze(pacman)
-        elif luckyFoodId == 3: PacmanRules.handleGhostSpeed(pacman)
+        elif luckyFoodId == 2: PacmanRules.handleGhostFreeze(state, pacman)
+        elif luckyFoodId == 3: PacmanRules.handleGhostSpeed(state, pacman)
         elif luckyFoodId == 4: PacmanRules.handlePacmanSizeMinus(pacman)
         elif luckyFoodId == 5: PacmanRules.handlePacmanSizePlus(pacman)
         elif luckyFoodId == 6: PacmanRules.handlePacmanColor(pacman)
         elif luckyFoodId == 7: PacmanRules.handleImmunity(state, pacman)
-        elif luckyFoodId == 8: PacmanRules.handleNoGhosts(pacman)
+        elif luckyFoodId == 8: PacmanRules.handleNoGhosts(state, pacman)
         elif luckyFoodId == 9: PacmanRules.handleInstantWin(state, pacman)
         elif luckyFoodId == 10: PacmanRules.handleInstantLose(state, pacman)
         elif luckyFoodId == 11: PacmanRules.handleTeleport(state, pacman)
@@ -430,12 +432,18 @@ class PacmanRules:
         Variables.PACMAN_SPEED = 0.5
         pacman.luckyFoodColor = PacmanRules.getColor("RED")
         
-    def handleGhostFreeze(pacman):
+    def handleGhostFreeze(state, pacman):
+        if Variables.NO_GHOSTS:
+            return PacmanRules.handleInstantWin(state, pacman)
+        
         pacman.luckyFood = "Ghost freeze"
         Variables.GHOST_SPEED = 0.0
         pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
         
-    def handleGhostSpeed(pacman):
+    def handleGhostSpeed(state, pacman):
+        if Variables.NO_GHOSTS:
+            return PacmanRules.handleInstantWin(state, pacman)
+        
         pacman.luckyFood = "Ghost speed decrease"
         Variables.GHOST_SPEED = 0.5
         pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
@@ -456,12 +464,18 @@ class PacmanRules:
         pacman.luckyFoodColor = PacmanRules.getColor("WHITE")
     
     def handleImmunity(state, pacman):
+        if Variables.NO_GHOSTS:
+            return PacmanRules.handleInstantWin(state, pacman)
+        
         pacman.luckyFood = "Immunity"
         for index in range( 1, len( state.data.agentStates ) ):
             state.data.agentStates[index].scaredTimer = LUCKYFOOD_TIME
         pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
             
-    def handleNoGhosts(pacman):
+    def handleNoGhosts(state, pacman):
+        if Variables.NO_GHOSTS:
+            return PacmanRules.handleInstantWin(state, pacman)
+        
         pacman.luckyFood = "No ghosts"
         Variables.GHOST_SIZE = 0
         Variables.NO_GHOSTS = True
@@ -492,6 +506,9 @@ class PacmanRules:
         pacman.luckyFoodColor = PacmanRules.getColor("WHITE")
         
     def handleMsPacman(state, pacman):
+        if Variables.NO_GHOSTS or len(state.data.agentStates) == 1:
+            return PacmanRules.handleInstantWin(state, pacman)
+        
         pacman.luckyFood = "Ms Pacman"
         
         Variables.MS_PACMAN_ID = random.randrange(1, len(state.data.agentStates))

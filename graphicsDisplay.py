@@ -105,7 +105,7 @@ class InfoPane:
         self.gridSize = gridSize
         self.width = (layout.width) * gridSize
         self.base = (layout.height + 1) * gridSize
-        self.height = INFO_PANE_HEIGHT
+        self.height = 2 * INFO_PANE_HEIGHT
         self.fontSize = 24
         self.textColor = SCORE_COLOR
         self.drawPane()
@@ -126,6 +126,7 @@ class InfoPane:
     def drawPane(self):
         self.scoreText = text( self.toScreen(0, 0), self.textColor, "SCORE:    0", "Times", self.fontSize, "bold")
         self.foodText = text( self.toScreen(250, 0), self.textColor, "", "Times", self.fontSize, "bold")
+        self.livesText = text( self.toScreen(250, 200), self.textColor, "Dea", "Times", self.fontSize, "bold")
 
     def initializeGhostDistances(self, distances):
         self.ghostDistanceText = []
