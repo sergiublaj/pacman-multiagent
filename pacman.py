@@ -392,7 +392,7 @@ class PacmanRules:
     def handleLuckyFood(state, pacman):
         pacman.luckyFoodTimer = LUCKYFOOD_TIME
             
-        # luckyFoodId = random.randint(0, 12)
+        # luckyFoodId = random.randint(0, 13)
         luckyFoodId = 12
 
         if luckyFoodId == 0: PacmanRules.handlePacmanFreeze(pacman)
@@ -407,6 +407,7 @@ class PacmanRules:
         elif luckyFoodId == 9: PacmanRules.handleInstantWin(state, pacman)
         elif luckyFoodId == 10: PacmanRules.handleInstantLose(state, pacman)
         elif luckyFoodId == 11: PacmanRules.handleTeleport(state, pacman)
+        elif luckyFoodId == 12: PacmanRules.handlePacmanLives(state, pacman)
         else: PacmanRules.handleMsPacman(state, pacman)
         
     handleLuckyFood = staticmethod( handleLuckyFood )
@@ -505,6 +506,11 @@ class PacmanRules:
 
         pacman.luckyFoodColor = PacmanRules.getColor("WHITE")
         
+    def handlePacmanLives(state, pacman):
+        pacman.luckyFood = "Life point added"
+        pacman.lives += 1
+        pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
+        
     def handleMsPacman(state, pacman):
         if Variables.NO_GHOSTS or len(state.data.agentStates) == 1:
             return PacmanRules.handleInstantWin(state, pacman)
@@ -589,6 +595,8 @@ class GhostRules:
     checkDeath = staticmethod( checkDeath )
 
     def collide( state, ghostState, agentIndex):
+        pacman = state.data.agentStates[0]
+        
         if agentIndex == Variables.MS_PACMAN_ID:
             state.data._win = True
         elif ghostState.scaredTimer > 0:
@@ -597,10 +605,13 @@ class GhostRules:
             ghostState.scaredTimer = 0
             # Added for first-person
             state.data._eaten[agentIndex] = True
-        else:
-            if not state.data._win:
-                state.data.scoreChange -= 500
-                state.data._lose = True
+        elif pacman.lives > 1:
+            state.data.scoreChange -= 200
+            GhostRules.placeGhost(state, ghostState)
+            pacman.lives -= 1
+        elif not state.data._win:
+            state.data.scoreChange -= 500
+            state.data._lose = True
     collide = staticmethod( collide )
 
     def canKill( pacmanPosition, ghostPosition ):

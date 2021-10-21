@@ -104,8 +104,8 @@ class InfoPane:
     def __init__(self, layout, gridSize):
         self.gridSize = gridSize
         self.width = (layout.width) * gridSize
-        self.base = (layout.height + 1) * gridSize
-        self.height = 2 * INFO_PANE_HEIGHT
+        self.base = (layout.height + 0) * gridSize
+        self.height = INFO_PANE_HEIGHT
         self.fontSize = 24
         self.textColor = SCORE_COLOR
         self.drawPane()
@@ -126,7 +126,7 @@ class InfoPane:
     def drawPane(self):
         self.scoreText = text( self.toScreen(0, 0), self.textColor, "SCORE:    0", "Times", self.fontSize, "bold")
         self.foodText = text( self.toScreen(250, 0), self.textColor, "", "Times", self.fontSize, "bold")
-        self.livesText = text( self.toScreen(250, 200), self.textColor, "Dea", "Times", self.fontSize, "bold")
+        self.livesText = text( self.toScreen(0, 27.5), self.textColor, "LIVES: ", "Times", self.fontSize, "bold")
 
     def initializeGhostDistances(self, distances):
         self.ghostDistanceText = []
@@ -143,6 +143,9 @@ class InfoPane:
 
     def updateScore(self, score):
         changeText(self.scoreText, "SCORE: % 4d" % score)
+        
+    def updateLives(self, lives):
+        changeText(self.livesText, f"LIVES: {lives} x \u2764\uFE0F")
         
     def updateFood(self, food, time, color):
         changeColor(self.foodText, color)
@@ -293,6 +296,7 @@ class PacmanGraphics:
             self.removeCapsule(newState._capsuleEaten, self.capsules)
         
         if agentState.isPacman:
+            self.infoPane.updateLives(agentState.lives)
             self.infoPane.updateFood(agentState.luckyFood, agentState.luckyFoodTimer, agentState.luckyFoodColor)
 
         self.infoPane.updateScore(newState.score)
