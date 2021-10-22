@@ -392,7 +392,7 @@ class PacmanRules:
     def handleLuckyFood(state, pacman):
         pacman.luckyFoodTimer = LUCKYFOOD_TIME
             
-        luckyFoodId = random.randint(0, 13)
+        luckyFoodId = random.randint(0, 14)
 
         if luckyFoodId == 0: PacmanRules.handlePacmanFreeze(pacman)
         elif luckyFoodId == 1: PacmanRules.handlePacmanSpeedDecrease(pacman)
@@ -407,6 +407,7 @@ class PacmanRules:
         elif luckyFoodId == 10: PacmanRules.handleInstantLose(state, pacman)
         elif luckyFoodId == 11: PacmanRules.handleTeleport(state, pacman)
         elif luckyFoodId == 12: PacmanRules.handlePacmanLives(state, pacman)
+        elif luckyFoodId == 13: PacmanRules.handlePacmanScore(state, pacman)
         else: PacmanRules.handleMsPacman(state, pacman)
         
     handleLuckyFood = staticmethod( handleLuckyFood )
@@ -485,11 +486,13 @@ class PacmanRules:
     def handleInstantWin(state, pacman):
         pacman.luckyFood = "Instant win"
         state.data._win = True
+        state.data.score += 1000
         pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
 
     def handleInstantLose(state, pacman):
         pacman.luckyFood = "Instant lose"
         state.data._lose = True
+        state.data.score -= 1000
         pacman.luckyFoodColor = PacmanRules.getColor("RED")
         
     def handleTeleport(state, pacman):
@@ -509,6 +512,18 @@ class PacmanRules:
         pacman.luckyFood = "Life point added"
         pacman.lives += 1
         pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
+        
+    def handlePacmanScore(state, pacman):
+        randomScore = random.randint(-50, 100)
+        
+        if randomScore > 0:
+            pacman.luckyFood = f"Score modified (+{randomScore})"
+            pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
+        else:
+            pacman.luckyFood = f"Score modified ({randomScore})"
+            pacman.luckyFoodColor = PacmanRules.getColor("RED")
+             
+        state.data.score += randomScore
         
     def handleMsPacman(state, pacman):
         if Variables.NO_GHOSTS or len(state.data.agentStates) == 1:
