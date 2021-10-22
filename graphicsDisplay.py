@@ -12,9 +12,11 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
+from ghostAgents import GhostAgent
 from graphicsUtils import *
 import math, time
-from game import Directions
+from game import Configuration, Directions
+
 
 ###########################
 #  GRAPHICS DISPLAY CODE  #
@@ -32,15 +34,8 @@ SCORE_COLOR = formatColor(.9, .9, .9)
 PACMAN_OUTLINE_WIDTH = 2
 PACMAN_CAPTURE_OUTLINE_WIDTH = 4
 
-GHOST_COLORS = []
-GHOST_COLORS.append(formatColor(.9,0,0)) # Red
-GHOST_COLORS.append(formatColor(0,.3,.9)) # Blue
-GHOST_COLORS.append(formatColor(.98,.41,.07)) # Orange
-GHOST_COLORS.append(formatColor(.1,.75,.7)) # Green
-GHOST_COLORS.append(formatColor(1.0,0.6,0.0)) # Yellow
-GHOST_COLORS.append(formatColor(.4,0.13,0.91)) # Purple
-
-TEAM_COLORS = GHOST_COLORS[:2]
+SYMBOL_HEART = "\u2764\uFE0F"
+SYMBOL_GHOST = "\u15E3"
 
 GHOST_SHAPE = [
     ( 0,    0.3 ),
@@ -55,14 +50,18 @@ GHOST_SHAPE = [
     (-0.5,  0.3 ),
     (-0.25, 0.75 )
   ]
-GHOST_SIZE = 0.65
+
+GHOST_COLORS = []
+GHOST_COLORS.append(formatColor(.9,0,0)) # Red
+GHOST_COLORS.append(formatColor(0,.3,.9)) # Blue
+GHOST_COLORS.append(formatColor(.98,.41,.07)) # Orange
+GHOST_COLORS.append(formatColor(.1,.75,.7)) # Green
+GHOST_COLORS.append(formatColor(1.0,0.6,0.0)) # Yellow
+    
+TEAM_COLORS = GHOST_COLORS[:2]
+
 SCARED_COLOR = formatColor(1,1,1)
-
 GHOST_VEC_COLORS = map(colorToVector, GHOST_COLORS)
-
-PACMAN_COLOR = formatColor(255.0/255.0,255.0/255.0,61.0/255)
-PACMAN_SCALE = 0.5
-#pacman_speed = 0.25
 
 # Food
 FOOD_COLOR = formatColor(1,1,1)
@@ -73,20 +72,47 @@ LASER_COLOR = formatColor(1,0,0)
 LASER_SIZE = 0.02
 
 # Capsule graphics
-CAPSULE_COLOR = formatColor(1,1,1)
-CAPSULE_SIZE = 0.25
+CAPSULE_COLORS = [
+    formatColor(0.0, 0.6, 0.6),
+    formatColor(0.5, 0.2, 0.0),
+    formatColor(0.3, 0.0, 0.9),
+    formatColor(0.2, 0.5, 0.0),
+    formatColor(0.9, 0.0, 0.2),
+]
+CAPSULE_SIZE = 0.3
 
 # Drawing walls
 WALL_RADIUS = 0.15
+
+foodTexts = ["Pacman freeze", "Pacman speed decrease", "Ghost freeze", "Ghost speed decrease", "Pacman size decrease", "Pacman size increase", "Immunity"]
+
+class UsefulVariables:
+    PACMAN_COLOR = formatColor(1.0, 0.6, 0.0)
+    PACMAN_SPEED = 1.0
+    PACMAN_SIZE_REQUEST = False
+    PACMAN_SIZE = 0.5
+    PACMAN_TELEPORT = False
+    PACMAN_COORDINATES = (-1, -1)
+    
+    MS_PACMAN_ID = -1
+    MS_PACMAN = None
+
+    GHOST_SIZE = 0.65
+    GHOST_SPEED = 1.0
+    NO_GHOSTS = False
+    
+    COLLISION_TOLERANCE = 0.7
+    
+Variables = UsefulVariables
 
 class InfoPane:
     def __init__(self, layout, gridSize):
         self.gridSize = gridSize
         self.width = (layout.width) * gridSize
-        self.base = (layout.height + 1) * gridSize
+        self.base = (layout.height + 0.1) * gridSize
         self.height = INFO_PANE_HEIGHT
         self.fontSize = 24
-        self.textColor = PACMAN_COLOR
+        self.textColor = SCORE_COLOR
         self.drawPane()
 
     def toScreen(self, pos, y = None):
@@ -103,7 +129,10 @@ class InfoPane:
         return x,y
 
     def drawPane(self):
-        self.scoreText = text( self.toScreen(0, 0  ), self.textColor, "SCORE:    0", "Times", self.fontSize, "bold")
+        self.scoreText = text( self.toScreen(0, 0), self.textColor, "SCORE:    0", "Times", self.fontSize, "bold")
+        self.foodText = text( self.toScreen(250, 0), self.textColor, "", "Times", self.fontSize, "bold")
+        self.livesText = text( self.toScreen(0, 30), self.textColor, "LIVES: ", "Times", self.fontSize, "bold")
+        self.ghostsEaten = text( self.toScreen(250, 30), self.textColor, f"GHOSTS EATEN: 0 x {SYMBOL_GHOST}", "Times", self.fontSize, "bold")
 
     def initializeGhostDistances(self, distances):
         self.ghostDistanceText = []
@@ -120,6 +149,22 @@ class InfoPane:
 
     def updateScore(self, score):
         changeText(self.scoreText, "SCORE: % 4d" % score)
+        
+    def updateLives(self, lives):
+        changeText(self.livesText, f"LIVES: {lives} x {SYMBOL_HEART}")
+        
+    def updateFood(self, food, time, color):
+        changeColor(self.foodText, color)
+        
+        timeText = f"({time})" if food in foodTexts else ""
+        
+        if time == 0:
+            changeText(self.foodText, "")
+        else:
+            changeText(self.foodText, f"FOOD: {food} {timeText}")
+            
+    def updateGhostsEaten(self, ghostsEaten):
+        changeText(self.ghostsEaten, f"GHOSTS EATEN: {ghostsEaten} x {SYMBOL_GHOST}")
 
     def setTeam(self, isBlue):
         text = "RED TEAM"
@@ -237,9 +282,19 @@ class PacmanGraphics:
         agentIndex = newState._agentMoved
         agentState = newState.agentStates[agentIndex]
 
-        if self.agentImages[agentIndex][0].isPacman != agentState.isPacman: self.swapImages(agentIndex, agentState)
+        if self.agentImages[agentIndex][0].isPacman != agentState.isPacman: 
+            self.swapImages(agentIndex, agentState)
+            
         prevState, prevImage = self.agentImages[agentIndex]
+        
         if agentState.isPacman:
+            moveCircle(prevImage, (99999, 99999), 0)
+            prevImage = PacmanGraphics.drawPacman(self, agentState, 0)
+            
+            agentState.configuration = Configuration(Variables.PACMAN_COORDINATES, agentState.configuration.direction) if Variables.PACMAN_TELEPORT else agentState.configuration
+            
+            Variables.PACMAN_TELEPORT = False
+            
             self.animatePacman(agentState, prevState, prevImage)
         else:
             self.moveGhost(agentState, agentIndex, prevState, prevImage)
@@ -247,9 +302,17 @@ class PacmanGraphics:
 
         if newState._foodEaten != None:
             self.removeFood(newState._foodEaten, self.food)
+            
         if newState._capsuleEaten != None:
             self.removeCapsule(newState._capsuleEaten, self.capsules)
+        
+        if agentState.isPacman:
+            self.infoPane.updateGhostsEaten(agentState.ghostsEaten)
+            self.infoPane.updateLives(agentState.lives)
+            self.infoPane.updateFood(agentState.luckyFood, agentState.luckyFoodTimer, agentState.luckyFoodColor)
+
         self.infoPane.updateScore(newState.score)
+        
         if 'ghostDistances' in dir(newState):
             self.infoPane.updateGhostDistances(newState.ghostDistances)
 
@@ -264,21 +327,24 @@ class PacmanGraphics:
                        BACKGROUND_COLOR,
                        "CS188 Pacman")
 
-    def drawPacman(self, pacman, index):
+    def drawPacman(self, pacman, index, isMsPacman = False):
         position = self.getPosition(pacman)
         screen_point = self.to_screen(position)
         endpoints = self.getEndpoints(self.getDirection(pacman))
 
         width = PACMAN_OUTLINE_WIDTH
-        outlineColor = PACMAN_COLOR
-        fillColor = PACMAN_COLOR
+        outlineColor = Variables.PACMAN_COLOR
+        fillColor = Variables.PACMAN_COLOR
 
         if self.capture:
             outlineColor = TEAM_COLORS[index % 2]
             fillColor = GHOST_COLORS[index]
             width = PACMAN_CAPTURE_OUTLINE_WIDTH
+            
+        if isMsPacman:
+            fillColor = formatColor(0.85, 0.1, 0.85)
 
-        return [circle(screen_point, PACMAN_SCALE * self.gridSize,
+        return [circle(screen_point, Variables.PACMAN_SIZE * self.gridSize,
                        fillColor = fillColor, outlineColor = outlineColor,
                        endpoints = endpoints,
                        width = width)]
@@ -299,10 +365,10 @@ class PacmanGraphics:
             endpoints = (0+delta, 0-delta)
         return endpoints
 
-    def movePacman(self, position, direction, image):
+    def movePacman(self, position, direction, image):            
         screenPosition = self.to_screen(position)
         endpoints = self.getEndpoints( direction, position )
-        r = PACMAN_SCALE * self.gridSize
+        r = Variables.PACMAN_SIZE * self.gridSize
         moveCircle(image[0], screenPosition, r, endpoints)
         refresh()
 
@@ -327,18 +393,22 @@ class PacmanGraphics:
         refresh()
 
     def getGhostColor(self, ghost, ghostIndex):
-        if ghost.scaredTimer > 0:
+        if Variables.NO_GHOSTS == True:
+            return BACKGROUND_COLOR
+        elif Variables.MS_PACMAN_ID == ghostIndex:
+            return formatColor(0.7, 0.1, 0.7)
+        elif ghost.scaredTimer > 0:
             return SCARED_COLOR
         else:
             return GHOST_COLORS[ghostIndex]
 
-    def drawGhost(self, ghost, agentIndex):
+    def drawGhost(self, ghost, agentIndex):           
         pos = self.getPosition(ghost)
         dir = self.getDirection(ghost)
         (screen_x, screen_y) = (self.to_screen(pos) )
         coords = []
         for (x, y) in GHOST_SHAPE:
-            coords.append((x*self.gridSize*GHOST_SIZE + screen_x, y*self.gridSize*GHOST_SIZE + screen_y))
+            coords.append((x*self.gridSize*Variables.GHOST_SIZE + screen_x, y*self.gridSize*Variables.GHOST_SIZE + screen_y))
 
         colour = self.getGhostColor(ghost, agentIndex)
         body = polygon(coords, colour, filled = 1)
@@ -355,17 +425,17 @@ class PacmanGraphics:
             dx = 0.2
         if dir == 'West':
             dx = -0.2
-        leftEye = circle((screen_x+self.gridSize*GHOST_SIZE*(-0.3+dx/1.5), screen_y-self.gridSize*GHOST_SIZE*(0.3-dy/1.5)), self.gridSize*GHOST_SIZE*0.2, WHITE, WHITE)
-        rightEye = circle((screen_x+self.gridSize*GHOST_SIZE*(0.3+dx/1.5), screen_y-self.gridSize*GHOST_SIZE*(0.3-dy/1.5)), self.gridSize*GHOST_SIZE*0.2, WHITE, WHITE)
-        leftPupil = circle((screen_x+self.gridSize*GHOST_SIZE*(-0.3+dx), screen_y-self.gridSize*GHOST_SIZE*(0.3-dy)), self.gridSize*GHOST_SIZE*0.08, BLACK, BLACK)
-        rightPupil = circle((screen_x+self.gridSize*GHOST_SIZE*(0.3+dx), screen_y-self.gridSize*GHOST_SIZE*(0.3-dy)), self.gridSize*GHOST_SIZE*0.08, BLACK, BLACK)
+        leftEye = circle((screen_x+self.gridSize*Variables.GHOST_SIZE*(-0.3+dx/1.5), screen_y-self.gridSize*Variables.GHOST_SIZE*(0.3-dy/1.5)), self.gridSize*Variables.GHOST_SIZE*0.2, WHITE, WHITE)
+        rightEye = circle((screen_x+self.gridSize*Variables.GHOST_SIZE*(0.3+dx/1.5), screen_y-self.gridSize*Variables.GHOST_SIZE*(0.3-dy/1.5)), self.gridSize*Variables.GHOST_SIZE*0.2, WHITE, WHITE)
+        leftPupil = circle((screen_x+self.gridSize*Variables.GHOST_SIZE*(-0.3+dx), screen_y-self.gridSize*Variables.GHOST_SIZE*(0.3-dy)), self.gridSize*Variables.GHOST_SIZE*0.08, BLACK, BLACK)
+        rightPupil = circle((screen_x+self.gridSize*Variables.GHOST_SIZE*(0.3+dx), screen_y-self.gridSize*Variables.GHOST_SIZE*(0.3-dy)), self.gridSize*Variables.GHOST_SIZE*0.08, BLACK, BLACK)
         ghostImageParts = []
         ghostImageParts.append(body)
         ghostImageParts.append(leftEye)
         ghostImageParts.append(rightEye)
         ghostImageParts.append(leftPupil)
         ghostImageParts.append(rightPupil)
-
+    
         return ghostImageParts
 
     def moveEyes(self, pos, dir, eyes):
@@ -380,12 +450,27 @@ class PacmanGraphics:
             dx = 0.2
         if dir == 'West':
             dx = -0.2
-        moveCircle(eyes[0],(screen_x+self.gridSize*GHOST_SIZE*(-0.3+dx/1.5), screen_y-self.gridSize*GHOST_SIZE*(0.3-dy/1.5)), self.gridSize*GHOST_SIZE*0.2)
-        moveCircle(eyes[1],(screen_x+self.gridSize*GHOST_SIZE*(0.3+dx/1.5), screen_y-self.gridSize*GHOST_SIZE*(0.3-dy/1.5)), self.gridSize*GHOST_SIZE*0.2)
-        moveCircle(eyes[2],(screen_x+self.gridSize*GHOST_SIZE*(-0.3+dx), screen_y-self.gridSize*GHOST_SIZE*(0.3-dy)), self.gridSize*GHOST_SIZE*0.08)
-        moveCircle(eyes[3],(screen_x+self.gridSize*GHOST_SIZE*(0.3+dx), screen_y-self.gridSize*GHOST_SIZE*(0.3-dy)), self.gridSize*GHOST_SIZE*0.08)
+        moveCircle(eyes[0],(screen_x+self.gridSize*Variables.GHOST_SIZE*(-0.3+dx/1.5), screen_y-self.gridSize*Variables.GHOST_SIZE*(0.3-dy/1.5)), self.gridSize*Variables.GHOST_SIZE*0.2)
+        moveCircle(eyes[1],(screen_x+self.gridSize*Variables.GHOST_SIZE*(0.3+dx/1.5), screen_y-self.gridSize*Variables.GHOST_SIZE*(0.3-dy/1.5)), self.gridSize*Variables.GHOST_SIZE*0.2)
+        moveCircle(eyes[2],(screen_x+self.gridSize*Variables.GHOST_SIZE*(-0.3+dx), screen_y-self.gridSize*Variables.GHOST_SIZE*(0.3-dy)), self.gridSize*Variables.GHOST_SIZE*0.08)
+        moveCircle(eyes[3],(screen_x+self.gridSize*Variables.GHOST_SIZE*(0.3+dx), screen_y-self.gridSize*Variables.GHOST_SIZE*(0.3-dy)), self.gridSize*Variables.GHOST_SIZE*0.08)
 
     def moveGhost(self, ghost, ghostIndex, prevGhost, ghostImageParts):
+        if ghostIndex == Variables.MS_PACMAN_ID:
+            for ghostImagePart in ghostImageParts:
+                move_by(ghostImagePart, (-1000, -1000))
+            refresh()
+            
+            if Variables.MS_PACMAN != None:
+                moveCircle(Variables.MS_PACMAN, (99999, 99999), 0)
+            Variables.MS_PACMAN = PacmanGraphics.drawPacman(self, ghost, 0, True)
+            
+        if Variables.NO_GHOSTS == True:
+            for ghostImagePart in ghostImageParts:
+                move_by(ghostImagePart, (-1000, -1000))
+            refresh()
+            return
+        
         old_x, old_y = self.to_screen(self.getPosition(prevGhost))
         new_x, new_y = self.to_screen(self.getPosition(ghost))
         delta = new_x - old_x, new_y - old_y
@@ -394,10 +479,8 @@ class PacmanGraphics:
             move_by(ghostImagePart, delta)
         refresh()
 
-        if ghost.scaredTimer > 0:
-            color = SCARED_COLOR
-        else:
-            color = GHOST_COLORS[ghostIndex]
+        color = self.getGhostColor(ghost, ghostIndex)
+            
         edit(ghostImageParts[0], ('fill', color), ('outline', color))
         self.moveEyes(self.getPosition(ghost), self.getDirection(ghost), ghostImageParts[-4:])
         refresh()
@@ -543,13 +626,13 @@ class PacmanGraphics:
 
     def drawCapsules(self, capsules ):
         capsuleImages = {}
-        for capsule in capsules:
+        for idx, capsule in enumerate(capsules):
             ( screen_x, screen_y ) = self.to_screen(capsule)
             dot = circle( (screen_x, screen_y),
                               CAPSULE_SIZE * self.gridSize,
-                              outlineColor = CAPSULE_COLOR,
-                              fillColor = CAPSULE_COLOR,
-                              width = 1)
+                              outlineColor = CAPSULE_COLORS[idx % len(CAPSULE_COLORS)],
+                              fillColor = CAPSULE_COLORS[idx % len(CAPSULE_COLORS)],
+                              width = 1.5)
             capsuleImages[capsule] = dot
         return capsuleImages
 

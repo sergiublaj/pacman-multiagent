@@ -39,12 +39,15 @@ code to run a game.  This file is divided into three sections:
 To play your first game, type 'python pacman.py' from the command line.
 The keys are 'a', 's', 'd', and 'w' to move (or arrow keys).  Have fun!
 """
+from tkinter import Variable
 from game import GameStateData
 from game import Game
 from game import Directions
 from game import Actions
 from util import nearestPoint
 from util import manhattanDistance
+from graphicsUtils import formatColor
+from graphicsDisplay import Variables
 import util, layout
 import sys, types, time, random, os
 
@@ -111,6 +114,7 @@ class GameState:
         # Time passes
         if agentIndex == 0:
             state.data.scoreChange += -TIME_PENALTY # Penalty for waiting around
+            PacmanRules.decrementFoodTimer (state.data.agentStates[0])
         else:
             GhostRules.decrementTimer( state.data.agentStates[agentIndex] )
 
@@ -147,6 +151,9 @@ class GameState:
 
     def getGhostStates( self ):
         return self.data.agentStates[1:]
+    
+    def setPacmanPosition( self, position ):
+        return self.data.agentStates[0].getPosition()
 
     def getGhostState( self, agentIndex ):
         if agentIndex == 0 or agentIndex >= self.getNumAgents():
@@ -259,6 +266,7 @@ class GameState:
 # You shouldn't need to look through the code in this section of the file. #
 ############################################################################
 
+LUCKYFOOD_TIME = 30 # Moves pacman has 'luck'
 SCARED_TIME = 40    # Moves ghosts are scared
 COLLISION_TOLERANCE = 0.7 # How close ghosts must be to Pacman to kill
 TIME_PENALTY = 1 # Number of points lost each round
@@ -325,8 +333,7 @@ class PacmanRules:
     These functions govern how pacman interacts with his environment under
     the classic game rules.
     """
-    PACMAN_SPEED=1
-
+    
     def getLegalActions( state ):
         """
         Returns a list of possible actions.
@@ -345,7 +352,7 @@ class PacmanRules:
         pacmanState = state.data.agentStates[0]
 
         # Update Configuration
-        vector = Actions.directionToVector( action, PacmanRules.PACMAN_SPEED )
+        vector = Actions.directionToVector( action, Variables.PACMAN_SPEED )
         pacmanState.configuration = pacmanState.configuration.generateSuccessor( vector )
 
         # Eat
@@ -358,31 +365,199 @@ class PacmanRules:
 
     def consume( position, state ):
         x,y = position
+        pacman = state.data.agentStates[0]
+        
         # Eat food
         if state.data.food[x][y]:
             state.data.scoreChange += 10
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
             state.data._foodEaten = position
-            # TODO: cache numFood?
+
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._lose:
                 state.data.scoreChange += 500
                 state.data._win = True
+                
         # Eat capsule
-        if( position in state.getCapsules() ):
+        if position in state.getCapsules() and pacman.luckyFoodTimer == 0:
+            state.data.scoreChange += 100
             state.data.capsules.remove( position )
             state.data._capsuleEaten = position
-            # Reset all ghosts' scared timers
-            for index in range( 1, len( state.data.agentStates ) ):
-                state.data.agentStates[index].scaredTimer = SCARED_TIME
+            
+            PacmanRules.handleLuckyFood(state, pacman)
+                    
     consume = staticmethod( consume )
+
+    def handleLuckyFood(state, pacman):
+        pacman.luckyFoodTimer = LUCKYFOOD_TIME
+            
+        luckyFoodId = random.randint(0, 14)
+
+        if luckyFoodId == 0: PacmanRules.handlePacmanFreeze(pacman)
+        elif luckyFoodId == 1: PacmanRules.handlePacmanSpeedDecrease(pacman)
+        elif luckyFoodId == 2: PacmanRules.handleGhostFreeze(state, pacman)
+        elif luckyFoodId == 3: PacmanRules.handleGhostSpeed(state, pacman)
+        elif luckyFoodId == 4: PacmanRules.handlePacmanSizeMinus(pacman)
+        elif luckyFoodId == 5: PacmanRules.handlePacmanSizePlus(pacman)
+        elif luckyFoodId == 6: PacmanRules.handlePacmanColor(pacman)
+        elif luckyFoodId == 7: PacmanRules.handleImmunity(state, pacman)
+        elif luckyFoodId == 8: PacmanRules.handleNoGhosts(state, pacman)
+        elif luckyFoodId == 9: PacmanRules.handleInstantWin(state, pacman)
+        elif luckyFoodId == 10: PacmanRules.handleInstantLose(state, pacman)
+        elif luckyFoodId == 11: PacmanRules.handleTeleport(state, pacman)
+        elif luckyFoodId == 12: PacmanRules.handlePacmanLives(state, pacman)
+        elif luckyFoodId == 13: PacmanRules.handlePacmanScore(state, pacman)
+        else: PacmanRules.handleMsPacman(state, pacman)
+        
+    handleLuckyFood = staticmethod( handleLuckyFood )
+            
+    def getColor(color):
+        if color == "WHITE":
+            return formatColor(1.0, 1.0, 1.0)
+        if color == "GREEN":
+            return formatColor(0.0, 1.0, 0.0)
+        if color == "RED":
+            return formatColor(1.0, 0.0, 0.0)
+        if color == "PINK":
+            return formatColor(0.7, 0.1, 0.7)        
+    getColor = staticmethod(getColor)
+    
+    def handlePacmanFreeze(pacman):
+        pacman.luckyFood = "Pacman freeze"
+        Variables.PACMAN_SPEED = 0.0
+        pacman.luckyFoodColor = PacmanRules.getColor("RED")
+        
+    def handlePacmanSpeedDecrease(pacman):
+        pacman.luckyFood = "Pacman speed decrease"
+        Variables.PACMAN_SPEED = 0.5
+        pacman.luckyFoodColor = PacmanRules.getColor("RED")
+        
+    def handleGhostFreeze(state, pacman):
+        if Variables.NO_GHOSTS:
+            return PacmanRules.handleInstantWin(state, pacman)
+        
+        pacman.luckyFood = "Ghost freeze"
+        Variables.GHOST_SPEED = 0.0
+        pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
+        
+    def handleGhostSpeed(state, pacman):
+        if Variables.NO_GHOSTS:
+            return PacmanRules.handleInstantWin(state, pacman)
+        
+        pacman.luckyFood = "Ghost speed decrease"
+        Variables.GHOST_SPEED = 0.5
+        pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
+        
+    def handlePacmanSizeMinus(pacman):
+        pacman.luckyFood = "Pacman size decrease"
+        Variables.PACMAN_SIZE = 0.3
+        pacman.luckyFoodColor = PacmanRules.getColor("RED")
+        
+    def handlePacmanSizePlus(pacman):
+        pacman.luckyFood = "Pacman size increase"
+        Variables.PACMAN_SIZE = 0.7
+        pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
+        
+    def handlePacmanColor(pacman):
+        pacman.luckyFood = "Random color"
+        Variables.PACMAN_COLOR = formatColor(random.random(), random.random(), random.random())
+        pacman.luckyFoodColor = PacmanRules.getColor("WHITE")
+    
+    def handleImmunity(state, pacman):
+        if Variables.NO_GHOSTS:
+            return PacmanRules.handleInstantWin(state, pacman)
+        
+        pacman.luckyFood = "Immunity"
+        for index in range( 1, len( state.data.agentStates ) ):
+            state.data.agentStates[index].scaredTimer = LUCKYFOOD_TIME
+        pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
+            
+    def handleNoGhosts(state, pacman):
+        if Variables.NO_GHOSTS:
+            return PacmanRules.handleInstantWin(state, pacman)
+        
+        pacman.luckyFood = "No ghosts"
+        Variables.GHOST_SIZE = 0
+        Variables.NO_GHOSTS = True
+        Variables.COLLISION_TOLERANCE = -1
+        pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
+        
+    def handleInstantWin(state, pacman):
+        pacman.luckyFood = "Instant win"
+        state.data._win = True
+        state.data.score += 1000
+        pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
+
+    def handleInstantLose(state, pacman):
+        pacman.luckyFood = "Instant lose"
+        state.data._lose = True
+        state.data.score -= 1000
+        pacman.luckyFoodColor = PacmanRules.getColor("RED")
+        
+    def handleTeleport(state, pacman):
+        pacman.luckyFood = "Teleport"
+        
+        Variables.PACMAN_TELEPORT = True
+        
+        x, y = 0, 0
+        while state.hasWall(x, y):
+            x, y = random.randint(1, state.data.layout.walls.width - 1), random.randint(1, state.data.layout.walls.height - 1)
+        
+        Variables.PACMAN_COORDINATES = x, y
+
+        pacman.luckyFoodColor = PacmanRules.getColor("WHITE")
+        
+    def handlePacmanLives(state, pacman):
+        pacman.luckyFood = "Life point added"
+        pacman.lives += 1
+        pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
+        
+    def handlePacmanScore(state, pacman):
+        randomScore = random.randint(-50, 100)
+        
+        if randomScore > 0:
+            pacman.luckyFood = f"Score modified (+{randomScore})"
+            pacman.luckyFoodColor = PacmanRules.getColor("GREEN")
+        else:
+            pacman.luckyFood = f"Score modified ({randomScore})"
+            pacman.luckyFoodColor = PacmanRules.getColor("RED")
+             
+        state.data.score += randomScore
+        
+    def handleMsPacman(state, pacman):
+        if Variables.NO_GHOSTS or len(state.data.agentStates) == 1:
+            return PacmanRules.handleInstantWin(state, pacman)
+        
+        pacman.luckyFood = "Ms Pacman"
+        
+        Variables.MS_PACMAN_ID = random.randrange(1, len(state.data.agentStates))
+        
+        pacman.luckyFoodColor = PacmanRules.getColor("PINK")
+    
+    def revertChanges():
+        Variables.PACMAN_SPEED = 1.0       
+        Variables.PACMAN_COLOR = formatColor(1.0, 0.6, 0.0)
+        Variables.PACMAN_SIZE = 0.5
+        Variables.PACMAN_TELEPORT = False
+        Variables.PACMAN_COORDINATES = (-1, -1)
+    
+        Variables.GHOST_SPEED = 1.0
+        Variables.GHOST_SIZE = 0.5
+    revertChanges = staticmethod( revertChanges )
+    
+    def decrementFoodTimer (pacmanState):
+        timer = pacmanState.luckyFoodTimer
+        pacmanState.luckyFoodTimer = max( 0, timer - 1 )
+        if timer == 0:
+            PacmanRules.revertChanges()
+    decrementFoodTimer = staticmethod( decrementFoodTimer )
 
 class GhostRules:
     """
     These functions dictate how ghosts interact with their environment.
     """
-    GHOST_SPEED=1.0
+    
     def getLegalActions( state, ghostIndex ):
         """
         Ghosts cannot stop, and cannot turn around unless they
@@ -405,7 +580,7 @@ class GhostRules:
             raise Exception("Illegal ghost action " + str(action))
 
         ghostState = state.data.agentStates[ghostIndex]
-        speed = GhostRules.GHOST_SPEED
+        speed = 0 if Variables.GHOST_SIZE == 0 else Variables.GHOST_SPEED
         if ghostState.scaredTimer > 0: speed /= 2.0
         vector = Actions.directionToVector( action, speed )
         ghostState.configuration = ghostState.configuration.generateSuccessor( vector )
@@ -416,7 +591,7 @@ class GhostRules:
         if timer == 1:
             ghostState.configuration.pos = nearestPoint( ghostState.configuration.pos )
         ghostState.scaredTimer = max( 0, timer - 1 )
-    decrementTimer = staticmethod( decrementTimer )
+    decrementTimer = staticmethod( decrementTimer )        
 
     def checkDeath( state, agentIndex):
         pacmanPosition = state.getPacmanPosition()
@@ -434,20 +609,28 @@ class GhostRules:
     checkDeath = staticmethod( checkDeath )
 
     def collide( state, ghostState, agentIndex):
-        if ghostState.scaredTimer > 0:
+        pacman = state.data.agentStates[0]
+        
+        if agentIndex == Variables.MS_PACMAN_ID:
+            state.data._win = True
+        elif ghostState.scaredTimer > 0:
             state.data.scoreChange += 200
             GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
+            pacman.ghostsEaten += 1
             # Added for first-person
             state.data._eaten[agentIndex] = True
-        else:
-            if not state.data._win:
-                state.data.scoreChange -= 500
-                state.data._lose = True
+        elif pacman.lives > 1:
+            state.data.scoreChange -= 200
+            GhostRules.placeGhost(state, ghostState)
+            pacman.lives -= 1
+        elif not state.data._win:
+            state.data.scoreChange -= 500
+            state.data._lose = True
     collide = staticmethod( collide )
 
     def canKill( pacmanPosition, ghostPosition ):
-        return manhattanDistance( ghostPosition, pacmanPosition ) <= COLLISION_TOLERANCE
+        return manhattanDistance( ghostPosition, pacmanPosition ) <= Variables.COLLISION_TOLERANCE
     canKill = staticmethod( canKill )
 
     def placeGhost(state, ghostState):

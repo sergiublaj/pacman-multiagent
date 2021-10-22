@@ -127,6 +127,12 @@ class AgentState:
         self.configuration = startConfiguration
         self.isPacman = isPacman
         self.scaredTimer = 0
+        self.luckyFoodTimer = 0
+        self.luckyFood = ""
+        self.luckyFoodColor = "WHITE"
+        self.lives = 1
+        self.ghostsEaten = 0
+        self.draw = True
         self.numCarrying = 0
         self.numReturned = 0
 
@@ -148,6 +154,12 @@ class AgentState:
         state = AgentState( self.start, self.isPacman )
         state.configuration = self.configuration
         state.scaredTimer = self.scaredTimer
+        state.luckyFoodTimer = self.luckyFoodTimer
+        state.luckyFood = self.luckyFood
+        state.luckyFoodColor = self.luckyFoodColor
+        state.lives = self.lives
+        state.draw = self.draw
+        state.ghostsEaten = self.ghostsEaten
         state.numCarrying = self.numCarrying
         state.numReturned = self.numReturned
         return state
